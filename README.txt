@@ -1,13 +1,12 @@
 ================================================================================
   CS OPS — REPOSITÓRIO DE REUTILIZAÇÃO
-  Baseado na arquitetura do projeto poker-engine / statistics (Aurelio)
+
   Criado em: 2026-04-08
 ================================================================================
 
-Este repositório contém arquivos extraídos de um projeto de análise de poker
-cuja arquitetura é diretamente reutilizável para automação de Customer Success
-Operations (CS Ops). A lógica de domínio (poker) é irrelevante — o que importa
-são os padrões de engenharia.
+Este repositório contém uma arquitetura enterprise reutilizável para automação
+de Customer Success Operations (CS Ops). Implementa um pipeline completo de
+detecção e ação em clientes, com padrões robustos de engenharia, ML e análise.
 
 O pipeline central é:
 
@@ -23,7 +22,7 @@ Que no contexto de CS Ops se traduz em:
 ================================================================================
 
   ingestion/          Coleta e normaliza dados de múltiplas fontes
-  analytics/          Calcula scores, detecta desvios e problemas (leaks)
+  analytics/          Calcula scores, detecta desvios e problemas
   decision/           Prioriza e recomenda intervenções
   decision_service/   Treinamento e inferência do modelo de decisão
   ml/                 Machine Learning: churn, expansão, saúde
@@ -39,17 +38,17 @@ Que no contexto de CS Ops se traduz em:
 ================================================================================
 
 ------------------------------------------------------------------------
-ARQUIVO: ingestion/hand_history_watcher.py
+ARQUIVO: ingestion/event_watcher.py
 EQUIVALENTE CS OPS: Monitor de eventos de clientes
 ------------------------------------------------------------------------
 O que faz:
   Fica em polling contínuo de uma pasta, detecta arquivos novos, parseia,
   deduplica por hash e insere no Postgres em batch. Suporta múltiplos
-  formatos (ACR + PokerStars) via adaptador.
+  formatos de origem (CRM, produto, tickets) via adaptador.
 
 Como adaptar para CS Ops:
   - Trocar a pasta monitorada pela pasta de exportação do CRM/Intercom/Zendesk
-  - Trocar o parser (hand_history_parser.py) pelo parser do formato de cada fonte
+  - Trocar o parser pelo parser do formato de cada fonte
   - O mecanismo de deduplicação (ON CONFLICT DO NOTHING), polling e batch
     funcionam sem alteração
   - Usar --once para carga histórica, modo contínuo para produção
@@ -60,15 +59,15 @@ Casos de uso:
   - Processar webhooks de pagamento salvos em disco
 
 ------------------------------------------------------------------------
-ARQUIVO: ingestion/hand_history_parser.py
+ARQUIVO: ingestion/event_parser.py
 EQUIVALENTE CS OPS: Parser de dados não estruturados de clientes
 ------------------------------------------------------------------------
 O que faz:
   Usa regex e dataclasses para converter texto não estruturado em registros
-  tipados com campos bem definidos (hero, ações por rua, resultado, etc.).
+  tipados com campos bem definidos (account, interaction, outcome, etc.).
 
 Como adaptar para CS Ops:
-  - Substituir as regex de mãos de poker por regex do formato do seu CRM
+  - Substituir as regex de eventos por regex do formato do seu CRM
   - Manter o padrão de dataclass como schema de saída (Account, Interaction,
     HealthEvent, etc.)
   - O padrão de "parse uma linha por vez, acumula em objeto, emite ao final"
@@ -99,14 +98,14 @@ ARQUIVO: ingestion/schema.sql
 EQUIVALENTE CS OPS: Schema base do banco de dados
 ------------------------------------------------------------------------
 O que faz:
-  Define tabelas (sessions, hands, actions), índices para queries de ML,
-  e views para análise agregada por posição e por mão.
+  Define tabelas (accounts, interactions, events), índices para queries de ML,
+  e views para análise agregada por segmento e por período.
 
 Como adaptar para CS Ops:
-  Renomear as entidades:
-    sessions  → accounts        (metadados de cada conta)
-    hands     → interactions    (cada contato, ticket, NPS, renovação)
-    actions   → events          (ações granulares por interação)
+  Manter as entidades já alinhadas:
+    accounts      → contas (metadados de cada cliente)
+    interactions  → contatos e tickets
+    events        → ações granulares por interação
 
   Views a criar (mesmo padrão das views existentes):
     v_stats_by_segment          (health score por segmento/indústria)
@@ -118,17 +117,17 @@ ARQUIVO: analytics/stats_engine.py
 EQUIVALENTE CS OPS: Motor de health score
 ------------------------------------------------------------------------
 O que faz:
-  Calcula métricas agregadas (VPIP, PFR, agressividade, WTSD), compara
+  Calcula métricas agregadas (engajamento, NPS, tickets, churn risk), compara
   contra benchmarks de referência, detecta desvios e gera alertas
   por threshold.
 
 Como adaptar para CS Ops:
-  Substituir as métricas de poker pelas métricas de saúde do cliente:
-    VPIP (engajamento)        → DAU/WAU ratio, login frequency
-    PFR (iniciativa)          → features ativas, expansão de uso
-    VPIP/PFR gap (passividade)→ gap entre features contratadas e usadas
-    WTSD (conversão)          → taxa de renovação, upsell
-    BB/100 (resultado)        → NRR (Net Revenue Retention) por conta
+  Métricas de saúde do cliente:
+    Engajamento       → DAU/WAU ratio, login frequency
+    Atividade         → features ativas, expansão de uso
+    Experiência       → gap entre features contratadas e usadas
+    Retencão          → taxa de renovação, upsell probability
+    Resultado         → NRR (Net Revenue Retention) por conta
 
   A lógica de threshold, benchmark e alerta funciona sem mudança.
 
@@ -163,18 +162,17 @@ O que faz (módulo completo):
   validation.py       → Valida integridade dos dados antes de processar
 
 Como adaptar para CS Ops:
-  Leak detector:   detectar padrões de risco (uso caindo, tickets subindo,
-                   NPS negativo, renovação se aproximando sem engajamento)
-  Context:         em qual fase do ciclo de vida o cliente está
-  Severity scorer: impacto em ARR — conta de $50k em risco vale mais
-  Study planner:   gerar plano de ação (call, QBR, oferta de desconto,
-                   treinamento, escalação)
+  Detector:     detectar padrões de risco (uso caindo, tickets subindo,
+                NPS negativo, renovação se aproximando sem engajamento)
+  Context:      em qual fase do ciclo de vida o cliente está
+  Severity:     impacto em ARR — conta de $50k em risco vale mais
+  Planner:      gerar plano de ação (call, QBR, oferta de desconto,
+                treinamento, escalação)
 
   A estrutura modular permite substituir um módulo por vez sem quebrar o resto.
 
 ------------------------------------------------------------------------
-ARQUIVO: ingestion/backfill_actions_from_hands.py
-ARQUIVO: ingestion/backfill_upsert_histories.py
+ARQUIVO: ingestion/backfill_database.py
 EQUIVALENTE CS OPS: Carga histórica do banco
 ------------------------------------------------------------------------
 O que faz:
@@ -196,8 +194,8 @@ ARQUIVO: decision/decision_engine.py
 EQUIVALENTE CS OPS: Motor de priorização de intervenções
 ------------------------------------------------------------------------
 O que faz:
-  Hierarquia de regras em camadas: regra base → ajuste por perfil do
-  oponente → contexto especial (ICM/bolha) → ajuste de ML → ação final.
+  Hierarquia de regras em camadas: regra base → ajuste por perfil do cliente
+  → contexto especial (fase do ciclo) → ajuste de ML → ação final.
 
 Como adaptar para CS Ops:
   Substituir as camadas por:
@@ -279,7 +277,7 @@ EQUIVALENTE CS OPS: Relatórios executivos e por CSM
     Reutilizar sem mudança.
 
 ------------------------------------------------------------------------
-ARQUIVO: storage/entity_tracker.py  (era villain_tracker.py)
+ARQUIVO: storage/account_tracker.py
 EQUIVALENTE CS OPS: Perfil incremental de cliente
 ------------------------------------------------------------------------
 O que faz:
@@ -287,7 +285,7 @@ O que faz:
   derivado, armazena em SQLite com WAL mode para leitura concorrente.
 
 Como adaptar para CS Ops:
-  - Entidade: conta (account_id) em vez de jogador (villain_name)
+  - Entidade: conta (account_id)
   - Métricas acumuladas: NPS histórico, tickets abertos/fechados, logins,
     features usadas, última interação, próxima renovação
   - A estrutura numerador/denominador (ex: tickets_resolvidos/tickets_abertos)
@@ -301,8 +299,16 @@ O que faz:
   Lookup O(1) de dados estruturados (dicts/frozensets) para injetar
   contexto em prompts de LLM.
 
+------------------------------------------------------------------------
+ARQUIVO: storage/knowledge_base.py
+EQUIVALENTE CS OPS: Playbooks de CS para o agente LLM
+------------------------------------------------------------------------
+O que faz:
+  Lookup O(1) de dados estruturados (dicts/frozensets) para injetar
+  contexto em prompts de LLM.
+
 Como adaptar para CS Ops:
-  - Substituir ranges de GTO por playbooks de CS:
+  - Substituir playbooks por:
     por segmento (SMB, Mid-Market, Enterprise)
     por motivo de risco (baixo engajamento, NPS negativo, tickets em aberto)
     por fase do ciclo (onboarding, adoção, renovação, expansão)
@@ -369,7 +375,7 @@ Como adaptar para CS Ops:
 
 2. SCHEMA DE CS (banco de dados)
    Arquivo sugerido: ingestion/schema_cs.sql
-   O que é: Substituição do schema.sql atual com entidades de CS.
+   O que é: Schema completo para entidades de Customer Success.
    O que construir (seguindo o mesmo padrão do schema.sql existente):
      CREATE TABLE accounts (
          account_id      UUID PRIMARY KEY,
@@ -409,7 +415,7 @@ Como adaptar para CS Ops:
      v_at_risk_accounts      → contas com churn_risk > 0.6 ordenadas por MRR
 
 3. PLAYBOOK DE DOMÍNIO
-   Arquivo sugerido: storage/cs_playbooks.json  (substitui gto_ranges.json)
+   Arquivo sugerido: storage/cs_playbooks.json
    O que é: Base de conhecimento de CS que o agente LLM consulta como contexto.
    O que construir:
    {
@@ -439,7 +445,7 @@ Como adaptar para CS Ops:
 ================================================================================
 
   [1] INGESTÃO (diária / contínua)
-      connectors/ → hand_history_watcher.py → hand_history_parser.py
+      connectors/ → event_watcher.py → event_parser.py
       → ingestion_service.py → Postgres (schema_cs.sql)
 
   [2] SCORING (a cada ingestão ou sob demanda)
@@ -491,8 +497,8 @@ Como adaptar para CS Ops:
 
   FASE 2 — INGESTÃO (2–3 dias)
     4. Criar um conector simples (ex: CSV export do CRM)
-    5. Adaptar hand_history_parser.py para o formato do conector
-    6. Rodar hand_history_watcher.py em modo --once para carga histórica
+    5. Adaptar event_parser.py para o formato do conector
+    6. Rodar event_watcher.py em modo --once para carga histórica
 
   FASE 3 — SCORING (2–3 dias)
     7. Adaptar stats_engine.py com métricas de CS
@@ -502,7 +508,7 @@ Como adaptar para CS Ops:
   FASE 4 — DECISÃO E AGENTE (1–2 dias)
     10. Adaptar decision_engine.py com playbook de CS
     11. Adaptar study_agent.py (trocar queries e system prompt)
-    12. Testar: python study_agent.py --maos-erradas (vira --contas-em-risco)
+    12. Testar: python study_agent.py --contas-em-risco
 
   FASE 5 — RELATÓRIOS E ML (opcional)
     13. Adaptar gerar_relatorio_semanal.py
@@ -513,7 +519,6 @@ Como adaptar para CS Ops:
   CONTATO / ORIGEM DOS ARQUIVOS
 ================================================================================
 
-  Projeto original : C:\projeto-spade\statistics  (poker DSS)
   Arquitetura base : C:\Users\aurel\Downloads\claw-code-main\claw-code-main
   Gerado em        : 2026-04-08
   Autor            : Aurelio
