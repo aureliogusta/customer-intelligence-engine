@@ -1,4 +1,7 @@
-# CS OPS — Customer Success Operations Platform
+# Revenue Intervention Engine
+
+### Autonomous Customer Success Operations (CS OPS) Platform
+
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/postgresql-13+-336791.svg)](https://www.postgresql.org/)
@@ -6,14 +9,35 @@
 [![Real-time](https://img.shields.io/badge/real--time-WebSocket%20API-green.svg)]()
 [![Architecture](https://img.shields.io/badge/architecture-event--driven-lightgrey.svg)]()
 
+
+
 ## 🎯 Visão Geral
 
-Plataforma enterprise de **automação inteligente de Customer Success Operations**. Um pipeline completo de ingestão, análise preditiva, decisão e ação — projetado para reduzir churn, identificar oportunidades de expansão e otimizar a retenção de clientes.
+Plataforma que identifica clientes em risco de churn e executa intervenções automaticamente para preservar receita.
 
-**Principais Capacidades:**
-- 📊 **Scoring em Tempo Real** — Health score instantâneo com latência <20ms
-- 🤖 **Decisão Automática** — Políticas baseadas em ML e regras de negócio
-- 📈 **Previsão de Churn** — Modelos treinados (XGBoost, Random Forest)
+Transforma dados de CRM, produto e suporte em decisões e ações operacionais em tempo real.
+
+### 💰 Impacto de Negócio
+
+- Identifica contas em risco com até 30 dias de antecedência
+- Prioriza automaticamente clientes com maior MRR em risco
+- Executa ações sem intervenção manual
+- Permite medir receita potencialmente preservada
+
+Exemplo:
+- 100 contas analisadas
+- 20 em risco
+- R$ 200k em MRR em risco
+- Sistema prioriza top 5 contas críticas automaticamente
+
+### Principais Capacidades:
+
+- 📊 **Scoring em Tempo Real** — 
+Health score instantâneo com latência <20ms
+- 🤖 **Decisão Automática** — 
+Políticas baseadas em ML e regras de negócio
+- 📈 **Previsão de Churn** — 
+Modelos treinados (XGBoost, Random Forest)
 - 🔔 **Multi-Channel Dispatch** — Email, Slack, SMS, API webhooks
 - 📋 **Auditoria 100% Rastreável** — Log imutável de todas as ações
 - 🧠 **Agente LLM Integrado** — Análise contextual com Llama/GPT
