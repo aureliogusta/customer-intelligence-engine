@@ -1,6 +1,6 @@
 # Revenue Intervention Engine
 
-### Autonomous Customer Success Operations (CS OPS) Platform
+### Event-Driven Data Pipeline & Predictive Decision Engine
 
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
@@ -13,35 +13,48 @@
 
 ## 🎯 Visão Geral
 
-Plataforma que identifica clientes em risco de churn e executa intervenções automaticamente para preservar receita.
+Plataforma orientada a eventos e dados (event-driven/data-driven) que orquestra a ingestão de dados de múltiplas fontes, processa métricas em tempo real (<20ms) e utiliza modelos de Machine Learning para automatizar decisões de negócio e disparar intervenções sistêmicas.
 
-Transforma dados de CRM, produto e suporte em decisões e ações operacionais em tempo real.
+Transforma dados de CRM, produto e suporte em um pipeline contínuo de scoring, predição e execução de ações — sem intervenção manual. Tudo para auxiliar equipes ou gestores competentes a controlar carteiras enterprise, mid-market ou low-market sem a necessidade de contatar equipes de CS e Account Manager, trabalhando com um sistema de predição automática de métricas gerais, focadas no churn para retenção e geração de receita (upsell e crosell)
 
-### 💰 Impacto de Negócio
+### 💰 Impacto de Negócio e do Sistema
 
-- Identifica contas em risco com até 30 dias de antecedência
+**Negócio:**
+- Identifica e mapeia contas em risco com até 30 dias de antecedência
 - Prioriza automaticamente clientes com maior MRR em risco
-- Executa ações sem intervenção manual
-- Permite medir receita potencialmente preservada
+- Executa ações sem intervenção manual e humana
+- Permite medir receita potencialmente preservada para ação
 
-Exemplo:
-- 100 contas analisadas
-- 20 em risco
+**Sistema:**
+- Processamento de eventos em batch e streaming com deduplicação idempotente
+- Latência de scoring garantida em <20ms via WebSocket
+- Arquitetura de serviços isolados e escaláveis via Docker
+- Pipeline de ML com retraining automático em caso de drift
+
+**Exemplo:**
+- 100 contas analisadas na carteira
+- 20 contas em risco
 - R$ 200k em MRR em risco
 - Sistema prioriza top 5 contas críticas automaticamente
+- Dispara relatórios de métricas e aciona via WhatsApp, E-mail, SMS ou CRM (FastAPI) para a equipe automaticamente (Diário, Semanal, Quinzenal e Mensal)
+- Determina intervenção e ação através de Agente IA (LLM)
+- Sistema armazena e reaprende de acordo com a intervenção humana
+- CLI Rust usa tool de healthcode para acrescentar/modificar a própria estrutura (datebase ou code) para melhorar constantemente;
+- Sistema se adapta num ciclo de começo-meio-fim;
+- Avalia capacidade de intervenção realizada, ajusta e reporta para líderes e gestores;
 
-### Principais Capacidades:
+### Principais Capacidades da Engine:
 
 - 📊 **Scoring em Tempo Real** — 
-Health score instantâneo com latência <20ms
+Health score instantâneo com latência <20ms para integração em CRM (Hubspot, Salesforce...) ou Frontend/Dashboard próprio
 - 🤖 **Decisão Automática** — 
-Políticas baseadas em ML e regras de negócio
+Políticas baseadas em Machine Learning, regras de negócio pré-estabelecida e ajustada de acordo com a empresa;
 - 📈 **Previsão de Churn** — 
-Modelos treinados (XGBoost, Random Forest)
-- 🔔 **Multi-Channel Dispatch** — Email, Slack, SMS, API webhooks
-- 📋 **Auditoria 100% Rastreável** — Log imutável de todas as ações
-- 🧠 **Agente LLM Integrado** — Análise contextual com Llama/GPT
-- 🔄 **ETL Robusto** — Deduplicação, idempotência, retry automático
+Modelos treinados (XGBoost, Random Forest, CLI Rust) para antecipar qualquer probabilidade de churn baixo
+- 🔔 **Multi-Channel Dispatch** — Email, Slack, SMS, API webhooks, Dashboard próprio
+- 📋 **Auditoria 100% Rastreável** — Log imutável de todas as ações realizadas pelo usuário e pelo próprio agente IA
+- 🧠 **Agente LLM Integrado** — Análise contextual com Llama/GPT/Claude para veredito e estudo dos dados para intervenção;
+- 🔄 **ETL Robusto** — Deduplicação, idempotência, retry automático, ingestão automática e em tempo real; reorganização de dados sem intervenção humana;
 
 ---
 
@@ -594,7 +607,7 @@ MIT License — Veja [LICENSE](LICENSE) para detalhes.
 
 - **Aurelio** — Engenheiro de Sistemas
   - GitHub: [@aurel](https://github.com/aurel)
-  - Expertise: ELT, ML, Backend, CS Automation
+  - Expertise: Data Engineering, Event-Driven Architecture, Backend (Python), Machine Learning
 
 ---
 
@@ -617,4 +630,4 @@ Arquitetura inspirada em padrões enterprise de:
 
 **Last Updated:** April 8, 2026
 
-Made with ❤️ for Customer Success teams everywhere.
+Made with ❤️ for high-performance data operations.
