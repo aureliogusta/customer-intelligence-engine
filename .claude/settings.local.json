@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python data/generate_training_data.py)",
+      "Bash(python -c \"import pandas as pd; df=pd.read_csv\\('data/train_dataset.csv'\\); print\\(df.columns.tolist\\(\\)\\); print\\(df.shape\\)\")"
+    ]
+  }
+}

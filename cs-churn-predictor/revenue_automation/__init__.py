@@ -1,0 +1,1 @@
+"""revenue_automation — subsistema de intervenção autônoma."""

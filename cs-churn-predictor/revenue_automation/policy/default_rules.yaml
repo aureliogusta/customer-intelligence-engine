@@ -1,0 +1,148 @@
+# revenue_automation/policy/default_rules.yaml
+# ==============================================
+# Regras de política de intervenção.
+# Cada regra tem:
+#   name        : identificador único
+#   priority    : menor = mais urgente (1 é o mais alto)
+#   conditions  : dicionário de campo → operador → valor
+#   actions     : lista de ActionCode a disparar
+#   channels    : lista de DispatchChannel para cada ação
+#   stop        : se True, não avalia regras de menor prioridade após match
+#
+# Operadores suportados: gt, lt, gte, lte, eq, ne, in, not_in
+
+rules:
+
+  # ── Crítico: MRR alto + risco extremo ──────────────────────────────────────
+  - name: critical_high_mrr
+    priority: 1
+    stop: true
+    conditions:
+      churn_risk:    {gt: 0.80}
+      mrr:           {gt: 5000}
+    actions:
+      - code: ESCALATE_TO_MANAGER
+        channels: [console, file, slack]
+      - code: SEND_SLACK_ALERT
+        channels: [slack, console]
+      - code: SEND_EMAIL
+        channels: [email, console]
+    reason: "Conta crítica: churn > 80% com MRR alto"
+
+  # ── Crítico: risco extremo qualquer MRR ────────────────────────────────────
+  - name: critical_any_mrr
+    priority: 2
+    stop: false
+    conditions:
+      churn_risk:    {gt: 0.80}
+    actions:
+      - code: ESCALATE_TO_MANAGER
+        channels: [console, file]
+      - code: CREATE_CRM_TASK
+        channels: [console, file]
+    reason: "Churn > 80% — escalonamento obrigatório"
+
+  # ── Alto risco: 60-80% ─────────────────────────────────────────────────────
+  - name: high_risk_action
+    priority: 3
+    stop: false
+    conditions:
+      churn_risk:    {gt: 0.60}
+    actions:
+      - code: CREATE_CRM_TASK
+        channels: [console, file]
+      - code: SCHEDULE_CALL
+        channels: [console, file]
+    reason: "Churn 60-80% — criar task CRM e agendar call"
+
+  # ── Risco médio + sem interação recente ────────────────────────────────────
+  - name: medium_risk_dormant
+    priority: 4
+    stop: false
+    conditions:
+      churn_risk:        {gte: 0.40}
+      dias_sem_interacao: {gt: 14}
+    actions:
+      - code: SEND_CUSTOMER_CHECKIN
+        channels: [email, console]
+      - code: SEND_EMAIL
+        channels: [email, console]
+    reason: "Risco médio + cliente inativo > 14 dias"
+
+  # ── Risco médio geral ──────────────────────────────────────────────────────
+  - name: medium_risk_general
+    priority: 5
+    stop: false
+    conditions:
+      churn_risk:    {gte: 0.40, lt: 0.60}
+    actions:
+      - code: SEND_EMAIL
+        channels: [email, console]
+      - code: MONITOR_ONLY
+        channels: [console]
+    reason: "Risco médio — email de check-in e monitoramento"
+
+  # ── NPS muito baixo ────────────────────────────────────────────────────────
+  - name: low_nps_alert
+    priority: 6
+    stop: false
+    conditions:
+      nps_score:     {lt: 4.0}
+      churn_risk:    {gt: 0.30}
+    actions:
+      - code: SEND_EMAIL
+        channels: [email, console]
+      - code: CREATE_CRM_TASK
+        channels: [console, file]
+    reason: "NPS < 4 combinado com risco elevado"
+
+  # ── Queda brusca de score ──────────────────────────────────────────────────
+  - name: sharp_score_drop
+    priority: 6
+    stop: false
+    conditions:
+      trend_delta:   {lt: -5.0}
+    actions:
+      - code: SEND_INTERNAL_REPORT
+        channels: [console, file]
+      - code: SEND_SLACK_ALERT
+        channels: [slack, console]
+    reason: "Queda de score > 5 pontos em 7 dias"
+
+  # ── QBR: enterprise + contrato longo ──────────────────────────────────────
+  - name: enterprise_qbr_trigger
+    priority: 7
+    stop: false
+    conditions:
+      segment:         {eq: "ENTERPRISE"}
+      dias_no_contrato: {gt: 180}
+      churn_risk:      {gt: 0.35}
+    actions:
+      - code: TRIGGER_QBR
+        channels: [console, file]
+    reason: "Enterprise com contrato > 180d e risco moderado — agendar QBR"
+
+  # ── Oportunidade de upsell ─────────────────────────────────────────────────
+  - name: upsell_opportunity
+    priority: 8
+    stop: false
+    conditions:
+      upsell_probability: {gt: 0.50}
+      churn_risk:         {lt: 0.30}
+    actions:
+      - code: PROPOSE_UPSELL
+        channels: [email, console]
+      - code: SHARE_ROADMAP
+        channels: [console, file]
+    reason: "Alta prob. de upsell + baixo risco — oportunidade de expansão"
+
+  # ── Saudável: só monitorar ─────────────────────────────────────────────────
+  - name: healthy_monitor
+    priority: 10
+    stop: false
+    conditions:
+      churn_risk:    {lt: 0.40}
+    actions:
+      - code: MONITOR_ONLY
+        channels: [console]
+    reason: "Conta saudável — manter monitoramento passivo"
